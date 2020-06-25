@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+	"unsafe"
 
 	"github.com/eiannone/keyboard"
 	"github.com/gorilla/websocket"
@@ -80,7 +81,8 @@ func do_thread_local() {
 		if LocalFlag == false {
 			break
 		}
-		fmt.Println("処理しています...")
+		SendMessagesToClients("o::{\"msg\":\"" + strconv.FormatInt(unixTime(), 10) + "\"}")
+		fmt.Println("処理し送信ています...")
 		time.Sleep(1000 * time.Millisecond)
 	}
 	fmt.Println("do_thread_localが終了しました。")
@@ -164,7 +166,6 @@ func wsSocket() {
 		return
 	}
 }
-
 func broadcastMessagesToClients() {
 	for {
 		// メッセージ受け取り
@@ -182,8 +183,36 @@ func broadcastMessagesToClients() {
 	}
 }
 
+//byte to string
+func bstring(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b))
+}
+
+//string to byte
+func sbytes(s string) []byte {
+	return *(*[]byte)(unsafe.Pointer(&s))
+}
+func SendMessagesToClients(msg string) {
+
+	arrays := []byte(msg)
+	// クライアントの数だけループ
+	for client := range clients {
+		//　書き込む
+		err := client.WriteMessage(websocket.TextMessage, arrays)
+		if err != nil {
+			log.Printf("error occurred while writing message to client: %v", err)
+			client.Close()
+			delete(clients, client)
+		}
+	}
+}
+
 func main() {
 	var result string = dayOfWeek()
 	fmt.Println(result)
-	wsSocket()
+	LocalFlag = true
+	go wsSocket()
+	time.Sleep(5000 * time.Microsecond)
+	go do_thread_local()
+	keyboard_event()
 }
