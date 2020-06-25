@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -207,6 +209,46 @@ func SendMessagesToClients(msg string) {
 	}
 }
 
+//http get
+func http_get() {
+	url := "https://google.co.jp"
+	req, _ := http.NewRequest("GET", url, nil)
+	//ヘッダーつける場合
+	//req.Header.Set("","")
+
+	client := new(http.Client)
+	resp, _ := client.Do(req)
+	defer resp.Body.Close()
+
+	byteArray, _ := ioutil.ReadAll(resp.Body)
+	fmt.Println(string(byteArray))
+}
+
+//http post
+func HttpPost(url, token, device string) error {
+	jsonStr := `{"token":"` + token + `","device":"` + device + `"}`
+
+	req, err := http.NewRequest(
+		"POST",
+		url,
+		bytes.NewBuffer([]byte(jsonStr)),
+	)
+	if err != nil {
+		return err
+	}
+
+	// Content-Type 設定
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return err
+}
 func main() {
 	var result string = dayOfWeek()
 	fmt.Println(result)
